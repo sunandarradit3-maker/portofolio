@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  SALES
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum WebsiteType {
+  SOURCE_CODE_ONLY
+  VERCEL_DEPLOYMENT
+  VPS_DEPLOYMENT
+  MAINTENANCE_MONTHLY
+}
+
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String?
+  email         String   @unique
+  passwordHash  String?
+  image         String?
+  role          Role     @default(EDITOR)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  projects      Project[] @relation("ProjectCreatedBy")
+  blogPosts     BlogPost[] @relation("PostCreatedBy")
+  contacts      Contact[]
+  leads         Lead[]
+}
+
+model Project {
+  id             String         @id @default(cuid())
+  title          String
+  slug           String         @unique
+  description    String
+  category       String
+  clientName     String?
+  thumbnail      String
+  demoLink       String?
+  githubLink     String?
+  featured       Boolean        @default(false)
+  status         ProjectStatus  @default(PUBLISHED)
+  technologies   String[]
+  createdById    String?
+  createdBy      User?          @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  images         ProjectImage[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model ProjectImage {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url        String
+  alt        String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String
+  icon        String?
+  highlight   Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PricingPlan {
+  id              String       @id @default(cuid())
+  name            String
+  slug            String       @unique
+  price           Int?
+  currency       String       @default("IDR")
+  description     String
+  features        String[]
+  websiteType     WebsiteType
+  setupFee        Int?         @default(0)
+  monthlyFee      Int?         @default(0)
+  ctaLabel        String       @default("Konsultasi")
+  featured        Boolean      @default(false)
+  order           Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  name        String
+  role        String
+  company     String?
+  avatar      String?
+  content     String
+  rating      Int      @default(5)
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Faq {
+  id          String   @id @default(cuid())
+  question    String
+  answer      String
+  order       Int      @default(0)
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BlogCategory {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  slug      String     @unique
+  posts     BlogPost[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model BlogTag {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  slug      String     @unique
+  posts     BlogPost[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model BlogPost {
+  id             String         @id @default(cuid())
+  title          String
+  slug           String         @unique
+  excerpt        String
+  content        String
+  thumbnail      String
+  seoTitle       String?
+  seoDescription String?
+  published      Boolean        @default(false)
+  categoryId     String?
+  category       BlogCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags           BlogTag[]
+  createdById    String?
+  createdBy      User?          @relation("PostCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  publishedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  whatsapp    String?
+  message     String
+  source      String?  @default("website")
+  handledById String?
+  handledBy   User?    @relation(fields: [handledById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  name        String
+  email       String
+  whatsapp    String?
+  service     String?
+  budget      String?
+  status      LeadStatus @default(NEW)
+  notes       String?
+  ownerId     String?
+  owner       User?      @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  group     String   @default("general")
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model Analytics {
+  id        String   @id @default(cuid())
+  event     String
+  metadata  Json?
+  path      String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
